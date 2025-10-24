@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TaskStoreRequest;
+use App\Http\Requests\TaskUpdateRequest;
 use App\Models\Task;
 use Illuminate\Http\Request;
 
@@ -36,14 +38,9 @@ class TaskController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TaskStoreRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'nullable|integer|min:0|max:2',
-            'due_date' => 'nullable|date',
-        ]);
+        $validated = $request->validated();
 
         $task = Task::create($validated);
 
@@ -77,7 +74,7 @@ class TaskController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(TaskUpdateRequest $request, string $id)
     {
         $task = Task::find($id);
 
@@ -88,12 +85,7 @@ class TaskController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'sometimes|integer|min:0|max:2',
-            'due_date' => 'nullable|date',
-        ]);
+        $validated = $request->validated();
 
         // ステータスが変更される場合、completed_atを自動設定
         if (isset($validated['status'])) {
@@ -152,7 +144,7 @@ class TaskController extends Controller
         }
 
         $task->update([
-            'status' => 2,
+            'status' => Task::STATUS_COMPLETED,
             'completed_at' => now()
         ]);
 
