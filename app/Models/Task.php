@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Task extends Model
 {
     use SoftDeletes;
+
+    // ステータス定数
+    const STATUS_PENDING = 0; // 未着手
+    const STATUS_IN_PROGRESS = 1; // 進行中
+    const STATUS_COMPLETED = 2; // 完了
+
     protected $fillable = [
         'title',
         'description',
@@ -27,9 +33,9 @@ class Task extends Model
     public function getStatusAttribute($value)
     {
         $statusMap = [
-            0 => 'pending',    // 未着手
-            1 => 'in_progress', // 進行中
-            2 => 'completed',   // 完了
+            self::STATUS_PENDING => 'pending',
+            self::STATUS_IN_PROGRESS => 'in_progress',
+            self::STATUS_COMPLETED => 'completed',
         ];
 
         return $statusMap[$value] ?? 'unknown';
