@@ -40,16 +40,22 @@ class TaskController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $dto = GetTasksDto::fromArray([
-                'only_deleted' => $request->boolean('only_deleted'),
-                'with_deleted' => $request->boolean('with_deleted'),
-            ]);
+            $dto = GetTasksDto::fromArray($request->all());
 
-            $tasks = $this->getTasksUseCase->execute($dto);
+            $paginator = $this->getTasksUseCase->execute($dto);
 
             return response()->json([
                 'success' => true,
-                'data' => $tasks
+                'data' => $paginator->items(),
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'count' => $paginator->count(),
+                    'per_page' => $paginator->perPage(),
+                    'current_page' => $paginator->currentPage(),
+                    'total_pages' => $paginator->lastPage(),
+                    'from' => $paginator->firstItem(),
+                    'to' => $paginator->lastItem(),
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([

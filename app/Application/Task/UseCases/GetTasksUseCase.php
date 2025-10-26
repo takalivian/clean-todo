@@ -4,7 +4,7 @@ namespace App\Application\Task\UseCases;
 
 use App\Application\Task\DTOs\GetTasksDto;
 use App\Domain\Task\Repositories\TaskRepositoryInterface;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class GetTasksUseCase
 {
@@ -14,16 +14,13 @@ class GetTasksUseCase
     }
 
     /**
-     * タスク一覧を取得する
+     * タスク一覧を取得する（フィルタリング・ページネーション対応）
      *
      * @param GetTasksDto $dto
-     * @return Collection
+     * @return LengthAwarePaginator
      */
-    public function execute(GetTasksDto $dto): Collection
+    public function execute(GetTasksDto $dto): LengthAwarePaginator
     {
-        return $this->taskRepository->findAll(
-            onlyDeleted: $dto->onlyDeleted,
-            withDeleted: $dto->withDeleted
-        );
+        return $this->taskRepository->findAllWithFilter($dto);
     }
 }
