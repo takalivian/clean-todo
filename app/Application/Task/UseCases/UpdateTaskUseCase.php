@@ -22,7 +22,8 @@ class UpdateTaskUseCase
         }
 
         // 完了済みまたは削除済みのタスクは編集不可
-        if ($task->status === Task::STATUS_COMPLETED) {
+        // アクセサを回避して生の値を取得
+        if ($task->getAttributes()['status'] === Task::STATUS_COMPLETED) {
             throw new \Exception('完了済みのタスクは編集できません。');
         }
 

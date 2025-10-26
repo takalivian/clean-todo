@@ -18,11 +18,15 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     {
         $query = Task::query();
 
+        // パラメータの優先順位: onlyDeleted > withDeleted
         if ($onlyDeleted) {
+            // 削除済みのみ取得（withDeletedの値は無視）
             $query->onlyTrashed();
         } elseif ($withDeleted) {
+            // 削除済みを含む全取得
             $query->withTrashed();
         }
+        // デフォルト: 削除されていないタスクのみ
 
         return $query->get();
     }
