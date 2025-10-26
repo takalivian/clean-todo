@@ -13,8 +13,21 @@ class GetTasksDto
     public static function fromArray(array $data): self
     {
         return new self(
-            onlyDeleted: $data['only_deleted'] ?? false,
-            withDeleted: $data['with_deleted'] ?? false,
+            onlyDeleted: self::toBool($data['only_deleted'] ?? false),
+            withDeleted: self::toBool($data['with_deleted'] ?? false),
         );
+    }
+
+    /**
+     * 値をboolに変換する（true/false以外はfalse）
+     */
+    private static function toBool(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        // true/false以外の値はすべてfalse
+        return false;
     }
 }

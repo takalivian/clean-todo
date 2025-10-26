@@ -15,6 +15,7 @@ class GetTaskUseCase
 
     /**
      * タスクを取得する
+     * 削除済みタスクも取得可能
      *
      * @param GetTaskDto $dto
      * @return Task

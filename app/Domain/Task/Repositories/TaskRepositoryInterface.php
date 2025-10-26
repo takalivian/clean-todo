@@ -9,9 +9,11 @@ interface TaskRepositoryInterface
     /**
      * タスク一覧を取得する
      *
-     * @param bool $onlyDeleted 削除済みのみ取得
-     * @param bool $withDeleted 削除済みを含めて取得
+     * @param bool $onlyDeleted 削除済みのみ取得（優先度: 高）
+     * @param bool $withDeleted 削除済みを含めて取得（優先度: 低）
      * @return \Illuminate\Database\Eloquent\Collection
+     * 
+     * 注意: onlyDeleted=true, withDeleted=true の場合、onlyDeletedが優先される
      */
     public function findAll(bool $onlyDeleted = false, bool $withDeleted = false);
 

@@ -26,6 +26,8 @@ class CreateTaskUseCase
 
         if ($data['status'] === Task::STATUS_COMPLETED) {
             $data['completed_at'] = now();
+        } else {
+            $data['completed_at'] = null;
         }
 
         return $this->taskRepository->create($data);
