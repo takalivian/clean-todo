@@ -10,6 +10,13 @@ class TaskControllerRestoreTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 認証されたユーザーとしてテストを実行
+        $this->actingAsUser();
+    }
+
     /**
      * 削除済みタスクを正常に復元できることをテストする
      * - 成功レスポンス（200）とJSON形式の確認

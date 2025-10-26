@@ -5,6 +5,7 @@ namespace App\Application\Task\DTOs;
 class CreateTaskDto
 {
     public function __construct(
+        public readonly int $user_id,
         public readonly string $title,
         public readonly ?string $description,
         public readonly int $status,
@@ -15,6 +16,7 @@ class CreateTaskDto
     public static function fromArray(array $data): self
     {
         return new self(
+            user_id: $data['user_id'],
             title: $data['title'],
             description: $data['description'] ?? null,
             status: $data['status'] ?? 0,
@@ -25,6 +27,7 @@ class CreateTaskDto
     public function toArray(): array
     {
         return [
+            'user_id' => $this->user_id,
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,

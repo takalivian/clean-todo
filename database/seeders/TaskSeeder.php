@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Task;
+use App\Models\User;
 use Carbon\Carbon;
 
 class TaskSeeder extends Seeder
@@ -14,6 +15,14 @@ class TaskSeeder extends Seeder
      */
     public function run(): void
     {
+        // ユーザーを取得（UserSeederが先に実行されている前提）
+        $users = User::all();
+        
+        if ($users->isEmpty()) {
+            $this->command->warn('ユーザーが見つかりません。先にUserSeederを実行してください。');
+            return;
+        }
+
         $tasks = [
             // 未着手タスク
             ['title' => 'プロジェクト企画書を作成', 'description' => '新規プロジェクトの企画書を作成し、チームに共有する', 'status' => 0, 'due_date' => Carbon::now()->addDays(3)],
@@ -55,12 +64,16 @@ class TaskSeeder extends Seeder
         ];
 
         foreach ($tasks as $taskData) {
+            // ランダムなユーザーを選択
+            $randomUser = $users->random();
+            
             $task = Task::create([
                 'title' => $taskData['title'],
                 'description' => $taskData['description'],
                 'status' => $taskData['status'],
                 'due_date' => $taskData['due_date'],
                 'completed_at' => $taskData['completed_at'] ?? null,
+                'user_id' => $randomUser->id,
             ]);
 
             // 削除済みタスクの場合は削除処理を実行

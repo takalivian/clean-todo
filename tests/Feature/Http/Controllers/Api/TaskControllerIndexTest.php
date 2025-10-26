@@ -10,6 +10,13 @@ class TaskControllerIndexTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 認証されたユーザーとしてテストを実行
+        $this->actingAsUser();
+    }
+
     /**
      * 正常なレスポンスが返されることをテストする
      * - 実際のデータベースを使用してエンドツーエンドの動作を検証

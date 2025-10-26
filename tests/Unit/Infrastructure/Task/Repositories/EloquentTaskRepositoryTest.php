@@ -124,7 +124,9 @@ class EloquentTaskRepositoryTest extends TestCase
     public function test_create_creates_task_successfully()
     {
         // Arrange: 作成するタスクデータを準備
+        $user = \App\Models\User::factory()->create();
         $data = [
+            'user_id' => $user->id,
             'title' => 'New Task',
             'description' => 'Task Description',
             'status' => Task::STATUS_PENDING,
@@ -153,8 +155,10 @@ class EloquentTaskRepositoryTest extends TestCase
     public function test_create_creates_completed_task()
     {
         // Arrange: 完了ステータスのタスクデータを準備
+        $user = \App\Models\User::factory()->create();
         $completedAt = now();
         $data = [
+            'user_id' => $user->id,
             'title' => 'Completed Task',
             'description' => 'Already done',
             'status' => Task::STATUS_COMPLETED,
@@ -180,7 +184,9 @@ class EloquentTaskRepositoryTest extends TestCase
     public function test_create_creates_task_with_minimal_data()
     {
         // Arrange: 最小限のデータを準備
+        $user = \App\Models\User::factory()->create();
         $data = [
+            'user_id' => $user->id,
             'title' => 'Minimal Task',
             'description' => null,
             'status' => Task::STATUS_PENDING,

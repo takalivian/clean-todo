@@ -16,6 +16,7 @@ class Task extends Model
     const STATUS_COMPLETED = 2; // 完了
 
     protected $fillable = [
+        'user_id',
         'title',
         'description',
         'status',
@@ -27,6 +28,14 @@ class Task extends Model
         'due_date' => 'datetime',
         'completed_at' => 'datetime',
     ];
+
+    /**
+     * このタスクを所有するユーザー
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * ステータスを文字列に変換

@@ -65,7 +65,10 @@ class TaskController extends Controller
     public function store(TaskStoreRequest $request): JsonResponse
     {
         try {
-            $dto = CreateTaskDto::fromArray($request->validated());
+            $dto = CreateTaskDto::fromArray([
+                'user_id' => auth()->id(),
+                ...$request->validated(),
+            ]);
 
             $task = $this->createTaskUseCase->execute($dto);
 
