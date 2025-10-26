@@ -198,4 +198,138 @@ class EloquentTaskRepositoryTest extends TestCase
         $this->assertNull($result->due_date);
     }
 
+    /**
+     * IDでタスクを取得できることをテストする
+     * - findByIdメソッドで正しいタスクが取得されることを確認
+     */
+    public function test_find_by_id_returns_task()
+    {
+        // Arrange: テストデータの準備
+        $task = Task::factory()->create(['title' => 'Test Task']);
+
+        // Act: IDでタスクを取得
+        $result = $this->repository->findById($task->id);
+
+        // Assert: 正しいタスクが返されることを確認
+        $this->assertInstanceOf(Task::class, $result);
+        $this->assertEquals($task->id, $result->id);
+        $this->assertEquals($task->title, $result->title);
+    }
+
+    /**
+     * 存在しないIDでタスクを取得するとnullが返されることをテストする
+     */
+    public function test_find_by_id_returns_null_when_not_found()
+    {
+        // Act: 存在しないIDでタスクを取得
+        $result = $this->repository->findById(9999);
+
+        // Assert: nullが返されることを確認
+        $this->assertNull($result);
+    }
+
+    /**
+     * タスクを更新できることをテストする
+     * - updateメソッドで正しくデータベースが更新されることを確認
+     */
+    public function test_update_updates_task_successfully()
+    {
+        // Arrange: テストデータの準備
+        $task = Task::factory()->create([
+            'title' => 'Original Title',
+            'status' => Task::STATUS_PENDING,
+        ]);
+
+        $updateData = [
+            'title' => 'Updated Title',
+            'status' => Task::STATUS_IN_PROGRESS,
+        ];
+
+        // Act: タスクを更新
+        $result = $this->repository->update($task, $updateData);
+
+        // Assert: タスクが更新されることを確認
+        $this->assertInstanceOf(Task::class, $result);
+        $this->assertEquals($updateData['title'], $result->title);
+        $this->assertEquals(Task::STATUS_IN_PROGRESS, $result->getAttributes()['status']);
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'title' => $updateData['title'],
+        ]);
+    }
+
+    /**
+     * タスクを削除（論理削除）できることをテストする
+     * - deleteメソッドで正しく論理削除されることを確認
+     */
+    public function test_delete_soft_deletes_task()
+    {
+        // Arrange: テストデータの準備
+        $task = Task::factory()->create(['title' => 'Task to Delete']);
+
+        // Act: タスクを削除
+        $result = $this->repository->delete($task);
+
+        // Assert: 論理削除されることを確認
+        $this->assertTrue($result);
+        $this->assertSoftDeleted('tasks', [
+            'id' => $task->id,
+        ]);
+    }
+
+    /**
+     * 削除済みタスクをIDで取得できることをテストする
+     * - findDeletedByIdメソッドで削除済みタスクが取得されることを確認
+     */
+    public function test_find_deleted_by_id_returns_deleted_task()
+    {
+        // Arrange: 削除済みタスクを準備
+        $task = Task::factory()->create(['title' => 'Deleted Task']);
+        $task->delete();
+
+        // Act: 削除済みタスクを取得
+        $result = $this->repository->findDeletedById($task->id);
+
+        // Assert: 削除済みタスクが返されることを確認
+        $this->assertInstanceOf(Task::class, $result);
+        $this->assertEquals($task->id, $result->id);
+        $this->assertEquals($task->title, $result->title);
+        $this->assertNotNull($result->deleted_at);
+    }
+
+    /**
+     * アクティブなタスクはfindDeletedByIdで取得できないことをテストする
+     */
+    public function test_find_deleted_by_id_returns_null_for_active_task()
+    {
+        // Arrange: アクティブなタスクを準備
+        $task = Task::factory()->create(['title' => 'Active Task']);
+
+        // Act: アクティブなタスクを削除済みとして取得しようとする
+        $result = $this->repository->findDeletedById($task->id);
+
+        // Assert: nullが返されることを確認
+        $this->assertNull($result);
+    }
+
+    /**
+     * タスクを復元できることをテストする
+     * - restoreメソッドで削除済みタスクが復元されることを確認
+     */
+    public function test_restore_restores_deleted_task()
+    {
+        // Arrange: 削除済みタスクを準備
+        $task = Task::factory()->create(['title' => 'Deleted Task']);
+        $task->delete();
+
+        // Act: タスクを復元
+        $result = $this->repository->restore($task);
+
+        // Assert: タスクが復元されることを確認
+        $this->assertTrue($result);
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'deleted_at' => null,
+        ]);
+    }
 }

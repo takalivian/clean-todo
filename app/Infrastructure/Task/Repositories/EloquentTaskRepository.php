@@ -44,13 +44,14 @@ class EloquentTaskRepository implements TaskRepositoryInterface
 
     /**
      * IDでタスクを取得する
+     * 削除済みタスクも含めて取得する
      *
      * @param int $id
      * @return Task|null
      */
     public function findById(int $id): ?Task
     {
-        return Task::find($id);
+        return Task::withTrashed()->find($id);
     }
 
     /**

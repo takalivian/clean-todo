@@ -25,6 +25,11 @@ class CompleteTaskUseCase
             throw new \Exception('削除済みのタスクは完了できません。');
         }
 
+        // 既に完了済みの場合はエラー
+        if ($task->getAttributes()['status'] === Task::STATUS_COMPLETED) {
+            throw new \Exception('既に完了済みのタスクです。');
+        }
+
         $data = [
             'status' => Task::STATUS_COMPLETED,
             'completed_at' => now(),
