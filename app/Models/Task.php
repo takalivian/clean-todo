@@ -16,17 +16,35 @@ class Task extends Model
     const STATUS_COMPLETED = 2; // 完了
 
     protected $fillable = [
+        'user_id',
         'title',
         'description',
         'status',
         'due_date',
         'completed_at',
+        'updated_by',
     ];
 
     protected $casts = [
         'due_date' => 'datetime',
         'completed_at' => 'datetime',
     ];
+
+    /**
+     * このタスクを所有するユーザー
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * このタスクを最後に更新したユーザー
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 
     /**
      * ステータスを文字列に変換

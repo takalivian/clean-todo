@@ -10,6 +10,13 @@ class TaskControllerCompleteTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 認証されたユーザーとしてテストを実行
+        $this->actingAsUser();
+    }
+
     /**
      * タスクを正常に完了状態にできることをテストする
      * - 成功レスポンス（200）とJSON形式の確認

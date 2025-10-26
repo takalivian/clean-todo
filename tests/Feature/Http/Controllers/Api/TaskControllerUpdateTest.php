@@ -10,6 +10,13 @@ class TaskControllerUpdateTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 認証されたユーザーとしてテストを実行
+        $this->actingAsUser();
+    }
+
     /**
      * タスクを正常に更新できることをテストする
      * - 全フィールドを更新
@@ -59,6 +66,7 @@ class TaskControllerUpdateTest extends TestCase
         $task = Task::factory()->create([
             'title' => 'Original Title',
             'description' => 'Original Description',
+            'status' => Task::STATUS_PENDING,
         ]);
 
         $updateData = [

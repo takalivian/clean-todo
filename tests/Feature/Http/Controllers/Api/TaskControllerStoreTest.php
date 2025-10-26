@@ -10,6 +10,13 @@ class TaskControllerStoreTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 認証されたユーザーとしてテストを実行
+        $this->actingAsUser();
+    }
+
     /**
      * 正常なタスク作成が成功することをテストする
      * - 全フィールドを指定してタスクを作成

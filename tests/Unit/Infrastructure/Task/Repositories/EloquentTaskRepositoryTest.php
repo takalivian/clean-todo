@@ -124,12 +124,15 @@ class EloquentTaskRepositoryTest extends TestCase
     public function test_create_creates_task_successfully()
     {
         // Arrange: 作成するタスクデータを準備
+        $user = \App\Models\User::factory()->create();
         $data = [
+            'user_id' => $user->id,
             'title' => 'New Task',
             'description' => 'Task Description',
             'status' => Task::STATUS_PENDING,
             'due_date' => '2025-12-31 23:59:59',
             'completed_at' => null,
+            'updated_by' => $user->id,
         ];
 
         // Act: タスクを作成
@@ -153,13 +156,16 @@ class EloquentTaskRepositoryTest extends TestCase
     public function test_create_creates_completed_task()
     {
         // Arrange: 完了ステータスのタスクデータを準備
+        $user = \App\Models\User::factory()->create();
         $completedAt = now();
         $data = [
+            'user_id' => $user->id,
             'title' => 'Completed Task',
             'description' => 'Already done',
             'status' => Task::STATUS_COMPLETED,
             'due_date' => null,
             'completed_at' => $completedAt,
+            'updated_by' => $user->id,
         ];
 
         // Act: タスクを作成
@@ -180,12 +186,15 @@ class EloquentTaskRepositoryTest extends TestCase
     public function test_create_creates_task_with_minimal_data()
     {
         // Arrange: 最小限のデータを準備
+        $user = \App\Models\User::factory()->create();
         $data = [
+            'user_id' => $user->id,
             'title' => 'Minimal Task',
             'description' => null,
             'status' => Task::STATUS_PENDING,
             'due_date' => null,
             'completed_at' => null,
+            'updated_by' => $user->id,
         ];
 
         // Act: タスクを作成

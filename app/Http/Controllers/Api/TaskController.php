@@ -65,7 +65,10 @@ class TaskController extends Controller
     public function store(TaskStoreRequest $request): JsonResponse
     {
         try {
-            $dto = CreateTaskDto::fromArray($request->validated());
+            $dto = CreateTaskDto::fromArray([
+                'user_id' => auth()->id(),
+                ...$request->validated(),
+            ]);
 
             $task = $this->createTaskUseCase->execute($dto);
 
@@ -114,6 +117,7 @@ class TaskController extends Controller
         try {
             $dto = UpdateTaskDto::fromArray([
                 'id' => $id,
+                'updated_by' => auth()->id(),
                 ...$request->validated(),
             ]);
 
@@ -160,7 +164,10 @@ class TaskController extends Controller
     public function complete(string $id): JsonResponse
     {
         try {
-            $dto = CompleteTaskDto::fromArray(['id' => $id]);
+            $dto = CompleteTaskDto::fromArray([
+                'id' => $id,
+                'updated_by' => auth()->id(),
+            ]);
 
             $task = $this->completeTaskUseCase->execute($dto);
 

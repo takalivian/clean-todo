@@ -6,6 +6,7 @@ class CompleteTaskDto
 {
     public function __construct(
         public readonly int $id,
+        public readonly ?int $updated_by = null,
     ) {
     }
 
@@ -13,6 +14,7 @@ class CompleteTaskDto
     {
         return new self(
             id: (int) $data['id'],
+            updated_by: $data['updated_by'] ?? null,
         );
     }
 }

@@ -38,6 +38,7 @@ class CreateTaskUseCaseTest extends TestCase
     {
         // Arrange: テストデータの準備
         $dto = new CreateTaskDto(
+            user_id: 1,
             title: 'Test Task',
             description: 'Test Description',
             status: Task::STATUS_PENDING,
@@ -45,6 +46,7 @@ class CreateTaskUseCaseTest extends TestCase
         );
 
         $expectedData = [
+            'user_id' => 1,
             'title' => 'Test Task',
             'description' => 'Test Description',
             'status' => Task::STATUS_PENDING,
@@ -60,6 +62,7 @@ class CreateTaskUseCaseTest extends TestCase
             ->with(Mockery::on(function ($data) use ($expectedData) {
                 // completed_atはnullであることを確認
                 $this->assertNull($data['completed_at']);
+                $this->assertEquals($expectedData['user_id'], $data['user_id']);
                 $this->assertEquals($expectedData['title'], $data['title']);
                 $this->assertEquals($expectedData['description'], $data['description']);
                 $this->assertEquals($expectedData['status'], $data['status']);
@@ -86,6 +89,7 @@ class CreateTaskUseCaseTest extends TestCase
     {
         // Arrange: 完了ステータスのテストデータを準備
         $dto = new CreateTaskDto(
+            user_id: 1,
             title: 'Completed Task',
             description: 'Already done',
             status: Task::STATUS_COMPLETED,
@@ -122,6 +126,7 @@ class CreateTaskUseCaseTest extends TestCase
     {
         // Arrange: 進行中ステータスのテストデータを準備
         $dto = new CreateTaskDto(
+            user_id: 1,
             title: 'In Progress Task',
             description: 'Working on it',
             status: Task::STATUS_IN_PROGRESS,
@@ -158,6 +163,7 @@ class CreateTaskUseCaseTest extends TestCase
     {
         // Arrange: 最小限のテストデータを準備
         $dto = new CreateTaskDto(
+            user_id: 1,
             title: 'Minimal Task',
             description: null,
             status: Task::STATUS_PENDING,
@@ -165,6 +171,7 @@ class CreateTaskUseCaseTest extends TestCase
         );
 
         $createdTask = new Task([
+            'user_id' => 1,
             'title' => 'Minimal Task',
             'description' => null,
             'status' => Task::STATUS_PENDING,
@@ -200,6 +207,7 @@ class CreateTaskUseCaseTest extends TestCase
     {
         // Arrange: テストデータの準備
         $dto = new CreateTaskDto(
+            user_id: 1,
             title: 'Task',
             description: 'Description',
             status: Task::STATUS_PENDING,
