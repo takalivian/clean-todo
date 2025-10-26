@@ -64,9 +64,11 @@ class TaskSeeder extends Seeder
         ];
 
         foreach ($tasks as $taskData) {
-            // ランダムなユーザーを選択
+            // ランダムなユーザーを選択（タスクの所有者）
             $randomUser = $users->random();
-            
+            // ランダムなユーザーを選択（更新者）
+            $updater = $users->random();
+
             $task = Task::create([
                 'title' => $taskData['title'],
                 'description' => $taskData['description'],
@@ -74,6 +76,7 @@ class TaskSeeder extends Seeder
                 'due_date' => $taskData['due_date'],
                 'completed_at' => $taskData['completed_at'] ?? null,
                 'user_id' => $randomUser->id,
+                'updated_by' => $updater->id,
             ]);
 
             // 削除済みタスクの場合は削除処理を実行

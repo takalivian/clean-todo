@@ -117,6 +117,7 @@ class TaskController extends Controller
         try {
             $dto = UpdateTaskDto::fromArray([
                 'id' => $id,
+                'updated_by' => auth()->id(),
                 ...$request->validated(),
             ]);
 
@@ -163,7 +164,10 @@ class TaskController extends Controller
     public function complete(string $id): JsonResponse
     {
         try {
-            $dto = CompleteTaskDto::fromArray(['id' => $id]);
+            $dto = CompleteTaskDto::fromArray([
+                'id' => $id,
+                'updated_by' => auth()->id(),
+            ]);
 
             $task = $this->completeTaskUseCase->execute($dto);
 

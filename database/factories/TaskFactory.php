@@ -17,13 +17,16 @@ class TaskFactory extends Factory
      */
     public function definition(): array
     {
+        $user = User::factory();
+
         return [
-            'user_id' => User::factory(),
+            'user_id' => $user,
             'title' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph(),
             'status' => $this->faker->numberBetween(0, 2),
             'due_date' => $this->faker->dateTimeBetween('now', '+30 days'),
             'completed_at' => null,
+            'updated_by' => $user,
         ];
     }
 }

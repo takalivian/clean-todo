@@ -35,6 +35,10 @@ class CompleteTaskUseCase
             'completed_at' => now(),
         ];
 
+        if ($dto->updated_by !== null) {
+            $data['updated_by'] = $dto->updated_by;
+        }
+
         return $this->taskRepository->update($task, $data);
     }
 }

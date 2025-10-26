@@ -10,6 +10,7 @@ class UpdateTaskDto
         public readonly ?string $description,
         public readonly ?int $status,
         public readonly ?string $due_date,
+        public readonly ?int $updated_by = null,
     ) {
     }
 
@@ -21,6 +22,7 @@ class UpdateTaskDto
             description: $data['description'] ?? null,
             status: isset($data['status']) ? (int) $data['status'] : null,
             due_date: $data['due_date'] ?? null,
+            updated_by: $data['updated_by'] ?? null,
         );
     }
 
@@ -42,6 +44,10 @@ class UpdateTaskDto
 
         if ($this->due_date !== null) {
             $data['due_date'] = $this->due_date;
+        }
+
+        if ($this->updated_by !== null) {
+            $data['updated_by'] = $this->updated_by;
         }
 
         return $data;

@@ -132,6 +132,7 @@ class EloquentTaskRepositoryTest extends TestCase
             'status' => Task::STATUS_PENDING,
             'due_date' => '2025-12-31 23:59:59',
             'completed_at' => null,
+            'updated_by' => $user->id,
         ];
 
         // Act: タスクを作成
@@ -164,6 +165,7 @@ class EloquentTaskRepositoryTest extends TestCase
             'status' => Task::STATUS_COMPLETED,
             'due_date' => null,
             'completed_at' => $completedAt,
+            'updated_by' => $user->id,
         ];
 
         // Act: タスクを作成
@@ -192,6 +194,7 @@ class EloquentTaskRepositoryTest extends TestCase
             'status' => Task::STATUS_PENDING,
             'due_date' => null,
             'completed_at' => null,
+            'updated_by' => $user->id,
         ];
 
         // Act: タスクを作成

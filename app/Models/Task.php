@@ -22,6 +22,7 @@ class Task extends Model
         'status',
         'due_date',
         'completed_at',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -35,6 +36,14 @@ class Task extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * このタスクを最後に更新したユーザー
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     /**
