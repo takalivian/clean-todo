@@ -115,4 +115,87 @@ class EloquentTaskRepositoryTest extends TestCase
         $this->assertCount(1, $result);
         $this->assertEquals('Deleted Task', $result->first()->title);
     }
+
+    /**
+     * タスクを作成できることをテストする
+     * - createメソッドで正しくデータベースに保存されることを確認
+     * - 保存されたタスクが返されることを確認
+     */
+    public function test_create_creates_task_successfully()
+    {
+        // Arrange: 作成するタスクデータを準備
+        $data = [
+            'title' => 'New Task',
+            'description' => 'Task Description',
+            'status' => Task::STATUS_PENDING,
+            'due_date' => '2025-12-31 23:59:59',
+            'completed_at' => null,
+        ];
+
+        // Act: タスクを作成
+        $result = $this->repository->create($data);
+
+        // Assert: タスクが作成され、データベースに保存されることを確認
+        $this->assertInstanceOf(Task::class, $result);
+        $this->assertEquals($data['title'], $result->title);
+        $this->assertEquals($data['description'], $result->description);
+        $this->assertEquals(Task::STATUS_PENDING, $result->getAttributes()['status']);
+        $this->assertDatabaseHas('tasks', [
+            'title' => $data['title'],
+            'description' => $data['description'],
+        ]);
+    }
+
+    /**
+     * 完了ステータスでタスクを作成できることをテストする
+     * - completed_atが設定されたタスクを作成
+     */
+    public function test_create_creates_completed_task()
+    {
+        // Arrange: 完了ステータスのタスクデータを準備
+        $completedAt = now();
+        $data = [
+            'title' => 'Completed Task',
+            'description' => 'Already done',
+            'status' => Task::STATUS_COMPLETED,
+            'due_date' => null,
+            'completed_at' => $completedAt,
+        ];
+
+        // Act: タスクを作成
+        $result = $this->repository->create($data);
+
+        // Assert: 完了ステータスとcompleted_atが設定されることを確認
+        $this->assertEquals(Task::STATUS_COMPLETED, $result->getAttributes()['status']);
+        $this->assertNotNull($result->completed_at);
+        $this->assertDatabaseHas('tasks', [
+            'title' => $data['title'],
+        ]);
+    }
+
+    /**
+     * 最小限のデータでタスクを作成できることをテストする
+     * - titleのみでタスクが作成されることを確認
+     */
+    public function test_create_creates_task_with_minimal_data()
+    {
+        // Arrange: 最小限のデータを準備
+        $data = [
+            'title' => 'Minimal Task',
+            'description' => null,
+            'status' => Task::STATUS_PENDING,
+            'due_date' => null,
+            'completed_at' => null,
+        ];
+
+        // Act: タスクを作成
+        $result = $this->repository->create($data);
+
+        // Assert: タスクが作成されることを確認
+        $this->assertInstanceOf(Task::class, $result);
+        $this->assertEquals($data['title'], $result->title);
+        $this->assertNull($result->description);
+        $this->assertNull($result->due_date);
+    }
+
 }
