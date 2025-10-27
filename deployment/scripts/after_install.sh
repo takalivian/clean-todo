@@ -18,7 +18,21 @@ fi
 
 # ECRにログイン
 echo "Logging in to ECR..."
-AWS_REGION=$(aws configure get region)
+
+# リージョンを取得（EC2メタデータから取得、フォールバックとしてap-northeast-1を使用）
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null)
+if [ -n "$TOKEN" ]; then
+    AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null)
+fi
+
+# リージョンが取得できなかった場合はデフォルト値を使用
+if [ -z "$AWS_REGION" ]; then
+    AWS_REGION="ap-northeast-1"
+    echo "Using default region: ${AWS_REGION}"
+else
+    echo "Detected region: ${AWS_REGION}"
+fi
+
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
