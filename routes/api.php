@@ -5,6 +5,14 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 
+// ヘルスチェックエンドポイント（認証不要）
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
 // 認証関連のAPI（認証不要）
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
