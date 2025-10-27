@@ -2,187 +2,214 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Application\Task\DTOs\CompleteTaskDto;
+use App\Application\Task\DTOs\CreateTaskDto;
+use App\Application\Task\DTOs\DeleteTaskDto;
+use App\Application\Task\DTOs\GetTaskDto;
+use App\Application\Task\DTOs\GetTasksDto;
+use App\Application\Task\DTOs\RestoreTaskDto;
+use App\Application\Task\DTOs\UpdateTaskDto;
+use App\Application\Task\UseCases\CompleteTaskUseCase;
+use App\Application\Task\UseCases\CreateTaskUseCase;
+use App\Application\Task\UseCases\DeleteTaskUseCase;
+use App\Application\Task\UseCases\GetTasksUseCase;
+use App\Application\Task\UseCases\GetTaskUseCase;
+use App\Application\Task\UseCases\RestoreTaskUseCase;
+use App\Application\Task\UseCases\UpdateTaskUseCase;
 use App\Http\Controllers\Controller;
-use App\Models\Task;
+use App\Http\Requests\TaskStoreRequest;
+use App\Http\Requests\TaskUpdateRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    public function __construct(
+        private readonly CreateTaskUseCase $createTaskUseCase,
+        private readonly GetTasksUseCase $getTasksUseCase,
+        private readonly GetTaskUseCase $getTaskUseCase,
+        private readonly UpdateTaskUseCase $updateTaskUseCase,
+        private readonly DeleteTaskUseCase $deleteTaskUseCase,
+        private readonly CompleteTaskUseCase $completeTaskUseCase,
+        private readonly RestoreTaskUseCase $restoreTaskUseCase,
+    ) {
+    }
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $query = Task::query();
+        try {
+            $dto = GetTasksDto::fromArray($request->all());
 
-        // クエリパラメータで削除済みの扱いを制御
-        if ($request->boolean('only_deleted')) {
-            // 削除済みのみ取得
-            $query->onlyTrashed();
-        } elseif ($request->boolean('with_deleted')) {
-            // すべて取得（削除済み含む）
-            $query->withTrashed();
+            $paginator = $this->getTasksUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'data' => $paginator->items(),
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'count' => $paginator->count(),
+                    'per_page' => $paginator->perPage(),
+                    'current_page' => $paginator->currentPage(),
+                    'total_pages' => $paginator->lastPage(),
+                    'from' => $paginator->firstItem(),
+                    'to' => $paginator->lastItem(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         }
-        // デフォルトは削除されていないタスクのみ
-
-        $tasks = $query->orderBy('due_date', 'asc')->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $tasks
-        ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(TaskStoreRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'nullable|integer|min:0|max:2',
-            'due_date' => 'nullable|date',
-        ]);
+        try {
+            $dto = CreateTaskDto::fromArray([
+                'user_id' => auth()->id(),
+                ...$request->validated(),
+            ]);
 
-        $task = Task::create($validated);
+            $task = $this->createTaskUseCase->execute($dto);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'タスクが作成されました',
-            'data' => $task
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'タスクが作成されました',
+                'data' => $task
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $id): JsonResponse
     {
-        $task = Task::find($id);
+        try {
+            $dto = GetTaskDto::fromArray([
+                'id' => $id,
+            ]);
 
-        if (!$task) {
+            $task = $this->getTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'タスクが見つかりません'
+                'message' => $e->getMessage()
             ], 404);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $task
-        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(TaskUpdateRequest $request, string $id): JsonResponse
     {
-        $task = Task::find($id);
+        try {
+            $dto = UpdateTaskDto::fromArray([
+                'id' => $id,
+                'updated_by' => auth()->id(),
+                ...$request->validated(),
+            ]);
 
-        if (!$task) {
+            $task = $this->updateTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'タスクが更新されました',
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'タスクが見つかりません'
-            ], 404);
+                'message' => $e->getMessage()
+            ], 400);
         }
-
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'sometimes|integer|min:0|max:2',
-            'due_date' => 'nullable|date',
-        ]);
-
-        // ステータスが変更される場合、completed_atを自動設定
-        if (isset($validated['status'])) {
-            if ($validated['status'] == 2) {
-                // ステータスが完了の場合、completed_atに現在時刻を設定
-                $validated['completed_at'] = now();
-            } else {
-                // それ以外の場合、completed_atをnullに設定
-                $validated['completed_at'] = null;
-            }
-        }
-
-        $task->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'タスクが更新されました',
-            'data' => $task
-        ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $id): JsonResponse
     {
-        $task = Task::find($id);
+        try {
+            $dto = DeleteTaskDto::fromArray(['id' => $id]);
 
-        if (!$task) {
+            $this->deleteTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'タスクが削除されました'
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'タスクが見つかりません'
-            ], 404);
+                'message' => $e->getMessage()
+            ], 400);
         }
-
-        $task->delete(); // 論理削除
-
-        return response()->json([
-            'success' => true,
-            'message' => 'タスクが削除されました'
-        ]);
     }
 
     /**
      * タスクを完了状態にする
      */
-    public function complete(string $id)
+    public function complete(string $id): JsonResponse
     {
-        $task = Task::find($id);
+        try {
+            $dto = CompleteTaskDto::fromArray([
+                'id' => $id,
+                'updated_by' => auth()->id(),
+            ]);
 
-        if (!$task) {
+            $task = $this->completeTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'タスクが完了しました',
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'タスクが見つかりません'
-            ], 404);
+                'message' => $e->getMessage()
+            ], 400);
         }
-
-        $task->update([
-            'status' => 2,
-            'completed_at' => now()
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'タスクが完了しました',
-            'data' => $task
-        ]);
     }
 
     /**
      * 削除されたタスクを復元する
      */
-    public function restore(string $id)
+    public function restore(string $id): JsonResponse
     {
-        $task = Task::onlyTrashed()->find($id);
+        try {
+            $dto = RestoreTaskDto::fromArray(['id' => $id]);
 
-        if (!$task) {
+            $task = $this->restoreTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'タスクが復元されました',
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => '削除されたタスクが見つかりません'
-            ], 404);
+                'message' => $e->getMessage()
+            ], 400);
         }
-
-        $task->restore();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'タスクが復元されました',
-            'data' => $task
-        ]);
     }
 }

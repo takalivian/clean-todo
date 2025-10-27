@@ -1,0 +1,32 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Task>
+ */
+class TaskFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        $user = User::factory();
+
+        return [
+            'user_id' => $user,
+            'title' => $this->faker->sentence(3),
+            'description' => $this->faker->paragraph(),
+            'status' => $this->faker->numberBetween(0, 2),
+            'due_date' => $this->faker->dateTimeBetween('now', '+30 days'),
+            'completed_at' => null,
+            'updated_by' => $user,
+        ];
+    }
+}

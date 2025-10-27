@@ -1,0 +1,105 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+      - production
+
+env:
+  AWS_REGION: ap-northeast-1
+  ECR_REPOSITORY: clean-todo
+  CODEDEPLOY_APPLICATION_NAME: clean-todo-app
+  CODEDEPLOY_DEPLOYMENT_GROUP: clean-todo-deployment-group
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.image-tag.outputs.tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          TAG="${GITHUB_SHA::8}-$(date +%Y%m%d-%H%M%S)"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Generated image tag: ${TAG}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile.prod .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create deployment package
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        run: |
+          # appspec.ymlとスクリプトをパッケージング
+          mkdir -p deployment-package
+          cp -r appspec.yml deployment/ deployment-package/
+
+          # IMAGE_TAGを環境変数ファイルに書き出し
+          echo "IMAGE_TAG=${IMAGE_TAG}" > deployment-package/deployment_env
+          echo "ECR_REPOSITORY=${ECR_REPOSITORY}" >> deployment-package/deployment_env
+
+          cd deployment-package
+          zip -r ../deployment.zip .
+          cd ..
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp deployment.zip s3://${{ secrets.S3_BUCKET }}/clean-todo/deployment-${{ github.sha }}.zip
+
+      - name: Create CodeDeploy deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name ${{ env.CODEDEPLOY_APPLICATION_NAME }} \
+            --deployment-group-name ${{ env.CODEDEPLOY_DEPLOYMENT_GROUP }} \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --s3-location bucket=${{ secrets.S3_BUCKET }},key=clean-todo/deployment-${{ github.sha }}.zip,bundleType=zip \
+            --description "Deployment from GitHub Actions - ${{ github.sha }}"
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment initiated successfully"
+          else
+            echo "❌ Deployment failed"
+          fi

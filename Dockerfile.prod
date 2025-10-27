@@ -1,0 +1,67 @@
+# マルチステージビルド用のベースイメージ
+FROM php:8.2-fpm as base
+
+WORKDIR /var/www/html
+
+# システムパッケージをインストール
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    nginx \
+    supervisor \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# PHP拡張機能をインストール
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd opcache
+
+# OPcacheの設定（本番環境用の最適化）
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=16" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=10000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# Composerをインストール
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# ビルドステージ
+FROM base as build
+
+# アプリケーションファイルをコピー
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+COPY . .
+
+# アプリケーションキーの生成とキャッシュ
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache
+
+# 本番環境用の最終イメージ
+FROM base as production
+
+# ビルドステージからアプリケーションファイルをコピー
+COPY --from=build /var/www/html /var/www/html
+
+# Nginxの設定ファイルをコピー
+COPY deployment/nginx/default.conf /etc/nginx/sites-available/default
+
+# Supervisorの設定ファイルをコピー
+COPY deployment/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 権限を設定
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# ポート80を公開
+EXPOSE 80
+
+# Supervisorで起動
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
