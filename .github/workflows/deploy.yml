@@ -1,9 +1,15 @@
-name: Deploy to AWS
+name: Deploy to AWS (DISABLED)
 
+# ワークフローを無効化しています
+# 再度有効化する場合は、下記の'on:'セクションのコメントを外してください
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+
+# 手動実行のみ許可（自動デプロイは無効）
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 env:
