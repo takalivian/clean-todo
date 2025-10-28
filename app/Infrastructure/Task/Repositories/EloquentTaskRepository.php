@@ -10,6 +10,15 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 class EloquentTaskRepository implements TaskRepositoryInterface
 {
     /**
+     * Eager Loadingで取得するリレーション
+     */
+    private const RELATIONS = [
+        'user:id,name,email',
+        'updater:id,name,email',
+        'tags:id,name'
+    ];
+
+    /**
      * タスク一覧を取得する
      *
      * @param bool $onlyDeleted 削除済みのみ取得
@@ -19,6 +28,9 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     public function findAll(bool $onlyDeleted = false, bool $withDeleted = false)
     {
         $query = Task::query();
+
+        // Eager Loading: N+1問題を防ぐため、ユーザー情報を事前にロード
+        $query->with(self::RELATIONS);
 
         // パラメータの優先順位: onlyDeleted > withDeleted
         if ($onlyDeleted) {
@@ -42,6 +54,9 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     public function findAllWithFilter(GetTasksDto $dto): LengthAwarePaginator
     {
         $query = Task::query();
+
+        // Eager Loading: N+1問題を防ぐため、ユーザー情報を事前にロード
+        $query->with(self::RELATIONS);
 
         // 削除状態のフィルタ
         if ($dto->onlyDeleted) {
@@ -105,7 +120,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
      */
     public function findById(int $id): ?Task
     {
-        return Task::withTrashed()->find($id);
+        return Task::withTrashed()->with(self::RELATIONS)->find($id);
     }
 
     /**
@@ -140,7 +155,7 @@ class EloquentTaskRepository implements TaskRepositoryInterface
      */
     public function findDeletedById(int $id): ?Task
     {
-        return Task::onlyTrashed()->find($id);
+        return Task::onlyTrashed()->with(self::RELATIONS)->find($id);
     }
 
     /**
@@ -152,5 +167,31 @@ class EloquentTaskRepository implements TaskRepositoryInterface
     public function restore(Task $task): bool
     {
         return $task->restore();
+    }
+
+    /**
+     * タスクにタグを付与する
+     *
+     * @param Task $task
+     * @param array $tagIds
+     * @return void
+     */
+    public function attachTags(Task $task, array $tagIds): void
+    {
+        // syncWithoutDetaching()は既存のタグを保持しつつ、新しいタグのみ追加（重複しない）
+        $task->tags()->syncWithoutDetaching($tagIds);
+    }
+
+    /**
+     * タスクからタグを削除する（物理削除）
+     *
+     * @param Task $task
+     * @param array $tagIds
+     * @return void
+     */
+    public function detachTags(Task $task, array $tagIds): void
+    {
+        // detach()は指定されたタグIDをピボットテーブルから削除
+        $task->tags()->detach($tagIds);
     }
 }
