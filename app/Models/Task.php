@@ -47,6 +47,15 @@ class Task extends Model
     }
 
     /**
+     * このタスクに付けられているタグ（多対多）
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'task_tag')
+                    ->withTimestamps();
+    }
+
+    /**
      * ステータスを文字列に変換
      */
     public function getStatusAttribute($value)

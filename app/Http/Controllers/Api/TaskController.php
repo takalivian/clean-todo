@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Application\Task\DTOs\AttachTagsToTaskDto;
 use App\Application\Task\DTOs\CompleteTaskDto;
 use App\Application\Task\DTOs\CreateTaskDto;
 use App\Application\Task\DTOs\DeleteTaskDto;
+use App\Application\Task\DTOs\DetachTagsFromTaskDto;
 use App\Application\Task\DTOs\GetTaskDto;
 use App\Application\Task\DTOs\GetTasksDto;
 use App\Application\Task\DTOs\RestoreTaskDto;
 use App\Application\Task\DTOs\UpdateTaskDto;
+use App\Application\Task\UseCases\AttachTagsToTaskUseCase;
 use App\Application\Task\UseCases\CompleteTaskUseCase;
 use App\Application\Task\UseCases\CreateTaskUseCase;
 use App\Application\Task\UseCases\DeleteTaskUseCase;
+use App\Application\Task\UseCases\DetachTagsFromTaskUseCase;
 use App\Application\Task\UseCases\GetTasksUseCase;
 use App\Application\Task\UseCases\GetTaskUseCase;
 use App\Application\Task\UseCases\RestoreTaskUseCase;
@@ -32,6 +36,8 @@ class TaskController extends Controller
         private readonly DeleteTaskUseCase $deleteTaskUseCase,
         private readonly CompleteTaskUseCase $completeTaskUseCase,
         private readonly RestoreTaskUseCase $restoreTaskUseCase,
+        private readonly AttachTagsToTaskUseCase $attachTagsToTaskUseCase,
+        private readonly DetachTagsFromTaskUseCase $detachTagsFromTaskUseCase,
     ) {
     }
     /**
@@ -203,6 +209,58 @@ class TaskController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'タスクが復元されました',
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * タスクにタグを付与する
+     */
+    public function attachTags(Request $request, string $id): JsonResponse
+    {
+        try {
+            $dto = AttachTagsToTaskDto::fromArray([
+                'task_id' => $id,
+                'tag_ids' => $request->input('tag_ids', []),
+            ]);
+
+            $task = $this->attachTagsToTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'タグを付与しました',
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * タスクからタグを削除する
+     */
+    public function detachTags(Request $request, string $id): JsonResponse
+    {
+        try {
+            $dto = DetachTagsFromTaskDto::fromArray([
+                'task_id' => $id,
+                'tag_ids' => $request->input('tag_ids', []),
+            ]);
+
+            $task = $this->detachTagsFromTaskUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'タグを削除しました',
                 'data' => $task
             ]);
         } catch (\Exception $e) {

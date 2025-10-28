@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\UserController;
 
 // ヘルスチェックエンドポイント（認証不要）
@@ -37,5 +38,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/tasks/{id}', [TaskController::class, 'update']);
     Route::post('/tasks/{id}/complete', [TaskController::class, 'complete']);
     Route::post('/tasks/{id}/restore', [TaskController::class, 'restore']);
+    Route::post('/tasks/{id}/tags/attach', [TaskController::class, 'attachTags']);
+    Route::post('/tasks/{id}/tags/detach', [TaskController::class, 'detachTags']);
     Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
+
+    // タグ関連のAPI
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::post('/tags', [TagController::class, 'store']);
+    Route::get('/tags/{id}', [TagController::class, 'show']);
+    Route::put('/tags/{id}', [TagController::class, 'update']);
+    Route::patch('/tags/{id}', [TagController::class, 'update']);
+    Route::delete('/tags/{id}', [TagController::class, 'destroy']);
 });
