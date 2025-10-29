@@ -194,4 +194,59 @@ class EloquentTaskRepository implements TaskRepositoryInterface
         // detach()は指定されたタグIDをピボットテーブルから削除
         $task->tags()->detach($tagIds);
     }
+
+    /**
+     * ユーザー別のタスク作成数を取得する
+     *
+     * @param int $limit
+     * @return \Illuminate\Support\Collection
+     */
+    public function getTaskCountByUser(int $limit): \Illuminate\Support\Collection
+    {
+        // ユーザーごとのタスク数を取得（削除済みも含める）
+        $userTaskCounts = Task::withTrashed()
+            ->select('user_id', \DB::raw('COUNT(*) as task_count'))
+            ->groupBy('user_id')
+            ->orderByDesc('task_count')
+            ->limit($limit)
+            ->get();
+
+        if ($userTaskCounts->isEmpty()) {
+            return collect();
+        }
+
+        // ユーザーIDのリストを取得
+        $userIds = $userTaskCounts->pluck('user_id')->toArray();
+
+        // ユーザー情報を一括取得（N+1問題を回避）
+        $users = \App\Models\User::select('id', 'name', 'email')
+            ->whereIn('id', $userIds)
+            ->get()
+            ->keyBy('id');
+
+        // 各ユーザーの最新タスクを一括取得（削除済みも含める）
+        $recentTasksByUser = Task::withTrashed()
+            ->whereIn('user_id', $userIds)
+            ->with('user:id,name,email')
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('user_id');
+
+        // 結果を組み立て
+        $result = collect();
+        
+        foreach ($userTaskCounts as $userTaskCount) {
+            $userId = $userTaskCount->user_id;
+            $user = $users->get($userId);
+            $recentTasks = $recentTasksByUser->get($userId, collect());
+
+            $result->push([
+                'user' => $user,
+                'task_count' => $userTaskCount->task_count,
+                'recent_tasks' => $recentTasks
+            ]);
+        }
+
+        return $result;
+    }
 }

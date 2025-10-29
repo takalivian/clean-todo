@@ -9,6 +9,7 @@ use App\Application\Task\DTOs\DeleteTaskDto;
 use App\Application\Task\DTOs\DetachTagsFromTaskDto;
 use App\Application\Task\DTOs\GetTaskDto;
 use App\Application\Task\DTOs\GetTasksDto;
+use App\Application\Task\DTOs\GetTaskStatisticsByUserDto;
 use App\Application\Task\DTOs\RestoreTaskDto;
 use App\Application\Task\DTOs\UpdateTaskDto;
 use App\Application\Task\UseCases\AttachTagsToTaskUseCase;
@@ -17,6 +18,7 @@ use App\Application\Task\UseCases\CreateTaskUseCase;
 use App\Application\Task\UseCases\DeleteTaskUseCase;
 use App\Application\Task\UseCases\DetachTagsFromTaskUseCase;
 use App\Application\Task\UseCases\GetTasksUseCase;
+use App\Application\Task\UseCases\GetTaskStatisticsByUserUseCase;
 use App\Application\Task\UseCases\GetTaskUseCase;
 use App\Application\Task\UseCases\RestoreTaskUseCase;
 use App\Application\Task\UseCases\UpdateTaskUseCase;
@@ -38,6 +40,7 @@ class TaskController extends Controller
         private readonly RestoreTaskUseCase $restoreTaskUseCase,
         private readonly AttachTagsToTaskUseCase $attachTagsToTaskUseCase,
         private readonly DetachTagsFromTaskUseCase $detachTagsFromTaskUseCase,
+        private readonly GetTaskStatisticsByUserUseCase $getTaskStatisticsByUserUseCase,
     ) {
     }
     /**
@@ -262,6 +265,31 @@ class TaskController extends Controller
                 'success' => true,
                 'message' => 'タグを削除しました',
                 'data' => $task
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * ユーザー別のタスク作成数統計を取得する
+     */
+    public function statisticsByUser(Request $request): JsonResponse
+    {
+        try {
+            $dto = GetTaskStatisticsByUserDto::fromArray([
+                'limit' => $request->input('limit', 5),
+            ]);
+
+            $statistics = $this->getTaskStatisticsByUserUseCase->execute($dto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'ユーザー別タスク統計を取得しました',
+                'data' => $statistics
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -93,4 +93,12 @@ interface TaskRepositoryInterface
      * @return void
      */
     public function detachTags(Task $task, array $tagIds): void;
+
+    /**
+     * ユーザー別のタスク作成数を取得する
+     *
+     * @param int $limit
+     * @return \Illuminate\Support\Collection
+     */
+    public function getTaskCountByUser(int $limit): \Illuminate\Support\Collection;
 }
