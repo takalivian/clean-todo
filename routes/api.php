@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // タスク関連のAPI
     Route::get('/tasks', [TaskController::class, 'index']);
     Route::post('/tasks', [TaskController::class, 'store']);
+    Route::get('/tasks/statistics/by-user', [TaskController::class, 'statisticsByUser']);
     Route::get('/tasks/{id}', [TaskController::class, 'show']);
     Route::put('/tasks/{id}', [TaskController::class, 'update']);
     Route::patch('/tasks/{id}', [TaskController::class, 'update']);
