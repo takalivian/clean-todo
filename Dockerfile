@@ -18,6 +18,13 @@ RUN apt-get update && apt-get install -y \
 # PHP拡張機能をインストール
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
+# Xdebug をインストールして有効化
+RUN pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
+# Xdebug 設定ファイルを配置
+COPY docker/php/conf.d/xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
+
 # Composerをインストール
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
