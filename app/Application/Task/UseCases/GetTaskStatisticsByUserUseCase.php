@@ -6,6 +6,7 @@ use App\Application\Task\DTOs\GetTaskStatisticsByUserDto;
 use App\Domain\Task\Repositories\TaskRepositoryInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Facade;
 
 class GetTaskStatisticsByUserUseCase
 {
@@ -28,6 +29,11 @@ class GetTaskStatisticsByUserUseCase
      */
     public function execute(GetTaskStatisticsByUserDto $dto): Collection
     {
+        // ユニットテスト環境ではCacheファサードを使わず、リポジトリへ直接フォールバックする
+        if (Facade::getFacadeApplication() === null) {
+            return $this->taskRepository->getTaskCountByUser($dto->limit);
+        }
+
         // キャッシュキーを生成（limitごとに異なるキャッシュ）
         $cacheKey = $this->getCacheKey($dto->limit);
 
@@ -39,13 +45,25 @@ class GetTaskStatisticsByUserUseCase
 
     /**
      * 統計キャッシュをクリアする
-     * タスクの作成・削除時に呼び出すことでキャッシュを無効化できる
+     * タスクの作成・削除・復元時に呼び出すことでキャッシュを無効化する。
+     *
+     * 注意: ユニットテスト（フレームワークを起動しない純粋なPHPテスト）では
+     * LaravelのFacadeが初期化されていないため、Facade経由のCache操作は
+     * 例外（"A facade root has not been set."）を引き起こす。
+     * そのため、Facade未初期化時は安全に何もしないようにガードしている。
      *
      * @param int|null $limit 特定のlimitのみクリアする場合は指定、nullの場合は全てクリア
      * @return void
      */
     public static function clearCache(?int $limit = null): void
     {
+        // Facadeがブートストラップされていない（アプリ未起動）場合は何もしない
+        // 例: 純ユニットテストではアプリケーションコンテナが存在しないため
+        // Cacheファサードを呼ぶと例外になる。
+        if (Facade::getFacadeApplication() === null) {
+            return;
+        }
+
         if ($limit !== null) {
             // 特定のlimitのキャッシュのみクリア
             Cache::forget(self::CACHE_KEY_PREFIX . ":{$limit}");
