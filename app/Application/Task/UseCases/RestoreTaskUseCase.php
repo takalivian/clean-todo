@@ -23,6 +23,9 @@ class RestoreTaskUseCase
 
         $this->taskRepository->restore($task);
 
+        // タスク復元により統計が変わるため、キャッシュをクリア
+        GetTaskStatisticsByUserUseCase::clearCache();
+
         return $task;
     }
 }
