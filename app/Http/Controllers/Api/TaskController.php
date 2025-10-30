@@ -284,12 +284,7 @@ class TaskController extends Controller
                 'limit' => $request->input('limit', 5),
             ]);
 
-            $startTime = microtime(true);
             $statistics = $this->getTaskStatisticsByUserUseCase->execute($dto);
-            $executionTime = microtime(true) - $startTime;
-            // ログに出力
-            \Log::info("Task retrieval took: " . $executionTime . " seconds");
-            
 
             return response()->json([
                 'success' => true,
