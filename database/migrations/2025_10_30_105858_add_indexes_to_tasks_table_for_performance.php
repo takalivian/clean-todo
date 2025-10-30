@@ -35,17 +35,30 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            // 単一カラムインデックスを削除
-            $table->dropIndex('tasks_status_index');
-            $table->dropIndex('tasks_deleted_at_index');
-            $table->dropIndex('tasks_created_at_index');
-            $table->dropIndex('tasks_due_date_index');
+        // インデックスのリスト
+        $indexes = [
+            'tasks_status_index',
+            'tasks_deleted_at_index',
+            'tasks_created_at_index',
+            'tasks_due_date_index',
+            'tasks_user_deleted_created_index',
+            'tasks_user_status_deleted_index',
+            'tasks_deleted_duedate_index',
+        ];
 
-            // 複合インデックスを削除
-            $table->dropIndex('tasks_user_deleted_created_index');
-            $table->dropIndex('tasks_user_status_deleted_index');
-            $table->dropIndex('tasks_deleted_duedate_index');
-        });
+        foreach ($indexes as $indexName) {
+            try {
+                \DB::statement("ALTER TABLE tasks DROP INDEX {$indexName}");
+            } catch (\Exception $e) {
+                // インデックスが存在しない、または外部キー制約で使用されている場合は無視
+                $errorMessage = $e->getMessage();
+                if (!str_contains($errorMessage, 'check that column/key exists') &&
+                    !str_contains($errorMessage, 'needed in a foreign key constraint') &&
+                    !str_contains($errorMessage, "Can't DROP")) {
+                    throw $e;
+                }
+                // エラーを無視して続行
+            }
+        }
     }
 };
