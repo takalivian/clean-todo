@@ -24,6 +24,11 @@ class DeleteTaskUseCase
             throw new \Exception('既に削除されています。');
         }
 
-        return $this->taskRepository->delete($task);
+        $result = $this->taskRepository->delete($task);
+
+        // タスク削除により統計が変わるため、キャッシュをクリア
+        GetTaskStatisticsByUserUseCase::clearCache();
+
+        return $result;
     }
 }

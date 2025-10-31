@@ -4,6 +4,7 @@ namespace Tests\Unit\Infrastructure\Task\Repositories;
 
 use App\Infrastructure\Task\Repositories\EloquentTaskRepository;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -340,5 +341,170 @@ class EloquentTaskRepositoryTest extends TestCase
             'id' => $task->id,
             'deleted_at' => null,
         ]);
+    }
+
+    /**
+     * ユーザー別のタスク作成数を取得できることをテストする
+     * - getTaskCountByUserメソッドが正しく統計を返すことを確認
+     */
+    public function test_get_task_count_by_user_returns_statistics()
+    {
+        // Arrange: 3人のユーザーにそれぞれタスクを作成
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $user3 = User::factory()->create();
+
+        Task::factory()->count(5)->create(['user_id' => $user1->id]);
+        Task::factory()->count(10)->create(['user_id' => $user2->id]);
+        Task::factory()->count(3)->create(['user_id' => $user3->id]);
+
+        // Act: ユーザー別タスク数を取得（Top 3）
+        $result = $this->repository->getTaskCountByUser(3);
+
+        // Assert: 結果の検証
+        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
+        $this->assertCount(3, $result);
+
+        // タスク数が降順であることを確認
+        $this->assertEquals(10, $result[0]['task_count']);
+        $this->assertEquals(5, $result[1]['task_count']);
+        $this->assertEquals(3, $result[2]['task_count']);
+
+        // ユーザー情報が含まれることを確認
+        $this->assertEquals($user2->id, $result[0]['user']->id);
+        $this->assertEquals($user1->id, $result[1]['user']->id);
+        $this->assertEquals($user3->id, $result[2]['user']->id);
+    }
+
+    /**
+     * limit=1でトップユーザーのみ取得できることをテストする
+     */
+    public function test_get_task_count_by_user_with_limit_one()
+    {
+        // Arrange: 3人のユーザーにタスクを作成
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $user3 = User::factory()->create();
+
+        Task::factory()->count(5)->create(['user_id' => $user1->id]);
+        Task::factory()->count(15)->create(['user_id' => $user2->id]); // 最多
+        Task::factory()->count(3)->create(['user_id' => $user3->id]);
+
+        // Act: ユーザー別タスク数を取得（Top 1）
+        $result = $this->repository->getTaskCountByUser(1);
+
+        // Assert: トップユーザーのみが返される
+        $this->assertCount(1, $result);
+        $this->assertEquals($user2->id, $result[0]['user']->id);
+        $this->assertEquals(15, $result[0]['task_count']);
+    }
+
+    /**
+     * タスクが存在しない場合に空のコレクションが返されることをテストする
+     */
+    public function test_get_task_count_by_user_returns_empty_when_no_tasks()
+    {
+        // Arrange: タスクを作成しない
+
+        // Act: ユーザー別タスク数を取得
+        $result = $this->repository->getTaskCountByUser(5);
+
+        // Assert: 空のコレクションが返される
+        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
+        $this->assertEmpty($result);
+    }
+
+    /**
+     * 削除済みタスクも集計に含まれることをテストする
+     */
+    public function test_get_task_count_by_user_includes_deleted_tasks()
+    {
+        // Arrange: ユーザーとタスクを作成、一部を削除
+        $user = User::factory()->create();
+
+        Task::factory()->count(5)->create(['user_id' => $user->id]);
+        $deletedTasks = Task::factory()->count(3)->create(['user_id' => $user->id]);
+        foreach ($deletedTasks as $task) {
+            $task->delete();
+        }
+
+        // Act: ユーザー別タスク数を取得
+        $result = $this->repository->getTaskCountByUser(5);
+
+        // Assert: 削除済みを含めた8件がカウントされる
+        $this->assertCount(1, $result);
+        $this->assertEquals(8, $result[0]['task_count']);
+    }
+
+    /**
+     * 同じタスク数のユーザーが複数いる場合も正しく取得できることをテストする
+     */
+    public function test_get_task_count_by_user_handles_same_task_count()
+    {
+        // Arrange: 3人のユーザーに同じ数のタスクを作成
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+        $user3 = User::factory()->create();
+
+        Task::factory()->count(5)->create(['user_id' => $user1->id]);
+        Task::factory()->count(5)->create(['user_id' => $user2->id]);
+        Task::factory()->count(5)->create(['user_id' => $user3->id]);
+
+        // Act: ユーザー別タスク数を取得
+        $result = $this->repository->getTaskCountByUser(5);
+
+        // Assert: 3人全員が返される
+        $this->assertCount(3, $result);
+
+        // 全員タスク数が5であることを確認
+        foreach ($result as $item) {
+            $this->assertEquals(5, $item['task_count']);
+        }
+    }
+
+    /**
+     * recent_tasksが含まれることをテストする
+     */
+    public function test_get_task_count_by_user_includes_recent_tasks()
+    {
+        // Arrange: ユーザーとタスクを作成
+        $user = User::factory()->create();
+        $tasks = Task::factory()->count(3)->create(['user_id' => $user->id]);
+
+        // Act: ユーザー別タスク数を取得
+        $result = $this->repository->getTaskCountByUser(5);
+
+        // Assert: recent_tasksが含まれることを確認
+        $this->assertCount(1, $result);
+        $this->assertArrayHasKey('recent_tasks', $result[0]);
+        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result[0]['recent_tasks']);
+        $this->assertCount(3, $result[0]['recent_tasks']);
+    }
+
+    /**
+     * limitが正しく適用されることをテストする
+     */
+    public function test_get_task_count_by_user_applies_limit_correctly()
+    {
+        // Arrange: 10人のユーザーにタスクを作成
+        $users = User::factory()->count(10)->create();
+
+        foreach ($users as $index => $user) {
+            Task::factory()->count($index + 1)->create(['user_id' => $user->id]);
+        }
+
+        // Act: limit=5で取得
+        $result = $this->repository->getTaskCountByUser(5);
+
+        // Assert: 5件のみ返される
+        $this->assertCount(5, $result);
+
+        // タスク数が降順であることを確認
+        for ($i = 0; $i < count($result) - 1; $i++) {
+            $this->assertGreaterThanOrEqual(
+                $result[$i + 1]['task_count'],
+                $result[$i]['task_count']
+            );
+        }
     }
 }

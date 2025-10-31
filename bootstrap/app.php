@@ -12,7 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // アクセスログを記録するミドルウェアを追加
+        $middleware->append(\App\Http\Middleware\LogHttpRequests::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

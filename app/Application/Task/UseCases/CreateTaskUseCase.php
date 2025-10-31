@@ -30,6 +30,11 @@ class CreateTaskUseCase
             $data['completed_at'] = null;
         }
 
-        return $this->taskRepository->create($data);
+        $task = $this->taskRepository->create($data);
+
+        // タスク作成により統計が変わるため、キャッシュをクリア
+        GetTaskStatisticsByUserUseCase::clearCache();
+
+        return $task;
     }
 }

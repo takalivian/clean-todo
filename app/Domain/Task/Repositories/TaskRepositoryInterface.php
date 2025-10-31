@@ -75,4 +75,30 @@ interface TaskRepositoryInterface
      * @return bool
      */
     public function restore(Task $task): bool;
+
+    /**
+     * タスクにタグを付与する
+     *
+     * @param Task $task
+     * @param array $tagIds
+     * @return void
+     */
+    public function attachTags(Task $task, array $tagIds): void;
+
+    /**
+     * タスクからタグを削除する（物理削除）
+     *
+     * @param Task $task
+     * @param array $tagIds
+     * @return void
+     */
+    public function detachTags(Task $task, array $tagIds): void;
+
+    /**
+     * ユーザー別のタスク作成数を取得する
+     *
+     * @param int $limit
+     * @return \Illuminate\Support\Collection
+     */
+    public function getTaskCountByUser(int $limit): \Illuminate\Support\Collection;
 }
